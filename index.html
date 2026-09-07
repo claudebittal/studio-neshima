@@ -90,7 +90,7 @@
     <section class="section contact-form">
       <div class="container">
         <h2>השארת פרטים</h2>
-        <form onsubmit="return false;">
+        <form id="contactForm">
           <div class="field">
             <label for="name">שם מלא</label>
             <input type="text" id="name" name="name" required>
@@ -108,6 +108,7 @@
             <textarea id="message" name="message" rows="4"></textarea>
           </div>
           <button type="submit">שליחה</button>
+          <p id="formStatus" class="form-status" role="status" aria-live="polite" hidden></p>
         </form>
       </div>
     </section>
@@ -129,5 +130,54 @@
     </div>
   </footer>
 
+  <script>
+    (function () {
+      var form = document.getElementById('contactForm');
+      var statusEl = document.getElementById('formStatus');
+      var webhookUrl = 'https://claudeb.app.n8n.cloud/webhook/studio-neshima-contact';
+
+      function showStatus(message, type) {
+        statusEl.textContent = message;
+        statusEl.className = 'form-status ' + type;
+        statusEl.hidden = false;
+      }
+
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        var submitButton = form.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+
+        var payload = {
+          name: form.name.value,
+          phone: form.phone.value,
+          email: form.email.value,
+          message: form.message.value
+        };
+
+        fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+          .then(function (response) {
+            return response.json().then(function (data) {
+              if (response.ok && data && data.ok) {
+                showStatus('הפנייה נשלחה בהצלחה. נחזור אליך בהקדם.', 'success');
+                form.reset();
+              } else {
+                showStatus('אירעה שגיאה בשליחת הפנייה. נסו שוב מאוחר יותר.', 'error');
+              }
+            });
+          })
+          .catch(function () {
+            showStatus('אירעה שגיאה בשליחת הפנייה. נסו שוב מאוחר יותר.', 'error');
+          })
+          .finally(function () {
+            submitButton.disabled = false;
+          });
+      });
+    })();
+  </script>
 </body>
 </html>
